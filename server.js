@@ -1,58 +1,28 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 
+// Variable pour stocker les résultats du scan
 let scanResults = [];
-let registeredUrls = []; 
 
-app.post('/register', (req, res) => {
-    const { url, hostname } = req.body; 
-
-    if (url && hostname) {
-        registeredUrls = registeredUrls.filter(entry => entry.hostname !== hostname);
-
-        registeredUrls.push({ url, hostname, timestamp: new Date() });
-
-        res.status(200).send({ message: "URL enregistrée avec succès." });
-    } else {
-        res.status(400).send({ error: "URL ou hostname manquant." });
-    }
+// Endpoint pour déclencher un scan (ne fait qu'envoyer une confirmation)
+app.post('/scan', (req, res) => {
+    console.log("Scan déclenché.");
+    res.status(200).json({ message: "Scan en cours, résultats attendus." });
 });
 
-app.get('/urls', (req, res) => {
-    res.status(200).send(registeredUrls);
-});
-
-app.post('/scan', async (req, res) => {
-    try {
-        let scanResults = [];
-
-        for (const entry of registeredUrls) {
-            try {
-                const response = await axios.post(`${entry.url}/scan`);
-                scanResults.push(...response.data);
-            } catch (error) {
-                console.error(`Erreur lors de la requête vers ${entry.url}:`, error.message);
-            }
-        }
-
-        res.status(200).send(scanResults);
-    } catch (error) {
-        console.error("Erreur lors de la récupération des résultats de scan :", error.message);
-        res.status(500).send({ error: "Erreur lors du scan." });
-    }
-});
-
+// Endpoint pour recevoir les résultats envoyés par Flask
 app.post('/results', (req, res) => {
     try {
+        console.log("Données reçues : ", req.body);
+
         const { data } = req.body; 
         if (data && Array.isArray(data)) {
-            scanResults.push(...data); 
+            scanResults.push(...data); // Ajouter les nouveaux résultats à la liste existante
             res.status(200).json({ message: "Résultats reçus avec succès" });
         } else {
             res.status(400).json({ error: "Format de données invalide" });
@@ -63,10 +33,12 @@ app.post('/results', (req, res) => {
     }
 });
 
+// Endpoint de test pour vérifier que le serveur fonctionne
 app.get('/', (req, res) => {
     res.send('Serveur Express opérationnel !');
 });
 
+// Lancement du serveur
 app.listen(PORT, () => {
     console.log(`Serveur démarré sur le port ${PORT}`);
 });
