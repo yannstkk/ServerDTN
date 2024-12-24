@@ -8,37 +8,48 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 
 let scanResults = [];
+let registeredUrls = []; 
+
+app.post('/register', (req, res) => {
+    const { url, hostname } = req.body; 
+
+    if (url && hostname) {
+        registeredUrls = registeredUrls.filter(entry => entry.hostname !== hostname);
+
+        registeredUrls.push({ url, hostname, timestamp: new Date() });
+
+        res.status(200).send({ message: "URL enregistrée avec succès." });
+    } else {
+        res.status(400).send({ error: "URL ou hostname manquant." });
+    }
+});
+
+app.get('/urls', (req, res) => {
+    res.status(200).send(registeredUrls);
+});
 
 app.post('/scan', async (req, res) => {
     try {
-        const broadcastEndpoint = 'http://localhost:5000/scan'; 
+        let scanResults = [];
 
-        scanResults = []; 
-        try {
-            const response = await axios.post(broadcastEndpoint);
-            console.log("Réponse du broadcast 22 : ", response.data);  
-
-            if (response.data && Array.isArray(response.data)) {
-                scanResults = response.data;
-            } else {
-                throw new Error("Résultats inattendus du broadcast");
+        for (const entry of registeredUrls) {
+            try {
+                const response = await axios.post(`${entry.url}/scan`);
+                scanResults.push(...response.data);
+            } catch (error) {
+                console.error(`Erreur lors de la requête vers ${entry.url}:`, error.message);
             }
-        } catch (error) {
-            console.error("Erreur lors du broadcast :", error.message);
         }
 
-        res.status(200).json(scanResults);
+        res.status(200).send(scanResults);
     } catch (error) {
-        console.error("Erreur lors de l'ordre de scan :", error.message);
-        res.status(500).json({ error: "Erreur lors de l'ordre de scan." });
+        console.error("Erreur lors de la récupération des résultats de scan :", error.message);
+        res.status(500).send({ error: "Erreur lors du scan." });
     }
 });
 
 app.post('/results', (req, res) => {
     try {
-        console.log("Données reçues 33 : ", req.body); 
-
-
         const { data } = req.body; 
         if (data && Array.isArray(data)) {
             scanResults.push(...data); 
