@@ -10,12 +10,22 @@ let scanResults = [];
 
 app.post('/results', (req, res) => {
     try {
-        const { data } = req.body;  
+        const { data } = req.body;
 
         if (data && Array.isArray(data)) {
-            scanResults = data; 
+            data.forEach(newHost => {
+                const exists = scanResults.some(
+                    existingHost =>
+                        existingHost.mac === newHost.mac && existingHost.ip === newHost.ip
+                );
+
+                if (!exists) {
+                    scanResults.push(newHost); 
+                }
+            });
+
             console.log("Résultats mis à jour :", scanResults);
-            res.status(200).json({ message: "Résultats reçus et mis à jour." });
+            res.status(200).json({ message: "Résultats reçus et ajoutés sans doublons." });
         } else {
             res.status(400).json({ error: "Format de données invalide" });
         }
@@ -25,11 +35,9 @@ app.post('/results', (req, res) => {
     }
 });
 
-
 app.get('/scan-results', (req, res) => {
     res.json(scanResults);
 });
-
 
 app.get('/', (req, res) => {
     res.send('Serveur Express opérationnel !');
