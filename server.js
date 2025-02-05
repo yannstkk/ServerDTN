@@ -13,19 +13,10 @@ app.post('/results', (req, res) => {
         const { data } = req.body;
 
         if (data && Array.isArray(data)) {
-            data.forEach(newHost => {
-                const exists = scanResults.some(
-                    existingHost =>
-                        existingHost.mac === newHost.mac && existingHost.ip === newHost.ip
-                );
-
-                if (!exists) {
-                    scanResults.push(newHost); 
-                }
-            });
+            scanResults = data;
 
             console.log("Résultats mis à jour :", scanResults);
-            res.status(200).json({ message: "Résultats reçus et ajoutés sans doublons." });
+            res.status(200).json({ message: "Résultats mis à jour avec succès." });
         } else {
             res.status(400).json({ error: "Format de données invalide" });
         }
